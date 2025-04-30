@@ -76,7 +76,7 @@ void AcionamentoMotorY(int sentido) {
     StepY = 0;
     wait_ms(1);
 }
-/
+
 // Motor Z mantém controle via BusOut
 void AcionamentoMotorZ(int estado) {
     int f[4] = {0x01, 0x02, 0x04, 0x08};
