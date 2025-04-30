@@ -98,9 +98,27 @@ void ReferenciarZ() {
         }
 }
 
+<<<<<<< HEAD
 void ReferenciarX() { 
     LED = 1;
     if (FdC_X_Max == 1) {AcionamentoMotorX(0);
+=======
+void ReferenciarX() {
+    if (referenciado_X) return;
+    switch (estado_X) {
+        case 0:
+            if (FdC_X_Max == 1) AcionamentoMotorX(0);
+            else estado_X = 1;
+            break;
+        case 1:
+            AcionamentoMotorX(1);
+            if (FdC_X_Max == 1) {
+                posicao_X = 0;
+                referenciado_X = true;
+                lcd.cls(); lcd.printf("X referenciado\nX=0");
+            }
+            break;
+>>>>>>> 7c3b5e91b5015cf714cda82950c3c3314be5c468
     }
     if (FdC_X_Max == 0){
         posicao_X = 0;
@@ -112,9 +130,26 @@ void ReferenciarX() {
 
 
 void ReferenciarY() {
+<<<<<<< HEAD
     LED = 0;
 
     if (FdC_Y_Min == 1) {AcionamentoMotorY(1);
+=======
+    if (referenciado_Y) return;
+    switch (estado_Y) {
+        case 0:
+            if (FdC_Y_Max == 1) AcionamentoMotorY(0);
+            else estado_Y = 1;
+            break;
+        case 1:
+            AcionamentoMotorY(1);
+            if (FdC_Y_Max == 1) {
+                posicao_Y = 0;
+                referenciado_Y = true;
+                lcd.cls(); lcd.printf("Y referenciado\nY=0");
+            }
+            break;
+>>>>>>> 7c3b5e91b5015cf714cda82950c3c3314be5c468
     }
     if (FdC_Y_Min == 0){
         posicao_Y = 0;
