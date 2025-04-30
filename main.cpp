@@ -4,8 +4,12 @@
 #define velo 0.1 // tempo entre os passos
 #define PASSO_MM 1.25f // 1 passo = 1.25mm
 
+// Serial PC(USBTX,USBRX);
+
 // LCD (RS, E, D4, D5, D6, D7)
 TextLCD lcd(PA_5, PA_6, PA_7, PA_8, PA_9, PA_10);
+
+DigitalOut LED(PA_5);
 
 // Controle de motor Z (mantido via BusOut)
 BusOut MotorZ(D5, D4, D3, D2);
@@ -58,19 +62,19 @@ void AcionamentoMotorZ(int estado);
 // === NOVAS FUNÇÕES ADAPTADAS PARA TB6560 ===
 
 void AcionamentoMotorX(int sentido) {
-    DirX = (sentido == 0);  // 0 = horário, 1 = anti-horário
+    DirX = sentido;  // 0 = horário, 1 = anti-horário
     StepX = 1;
-    wait_ms(2);
+    wait_ms(1);
     StepX = 0;
-    wait_ms(2);
+    wait_ms(1);
 }
 
 void AcionamentoMotorY(int sentido) {
-    DirY = (sentido == 0);
+    DirY = sentido;
     StepY = 1;
-    wait_ms(2);
+    wait_ms(1);
     StepY = 0;
-    wait_ms(2);
+    wait_ms(1);
 }
 
 // Motor Z mantém controle via BusOut
@@ -85,59 +89,40 @@ void AcionamentoMotorZ(int estado) {
 
 // Referenciamento
 void ReferenciarZ() {
-    if (referenciado_Z) return;
-    switch (estado_Z) {
-        case 0:
-            if (FdC_Z_Min == 1) AcionamentoMotorZ(0);
-            else { MotorZ = 0; estado_Z = 1; }
-            break;
-        case 1:
-            AcionamentoMotorZ(1);
-            if (FdC_Z_Min == 1) {
-                MotorZ = 0;
-                posicao_Z = 0;
-                referenciado_Z = true;
-                lcd.cls(); lcd.printf("Z referenciado\nZ=0");
-            }
-            break;
+    if (FdC_Z_Max == 1) {AcionamentoMotorX(1);
     }
+    if (FdC_Z_Max == 0){
+        posicao_Z = 0;
+        referenciado_Z = true;
+        lcd.cls(); lcd.printf("Z referenciado\nX=0");
+        }
 }
 
-void ReferenciarX() {
-    if (referenciado_X) return;
-    switch (estado_X) {
-        case 0:
-            if (FdC_X_Min == 1) AcionamentoMotorX(0);
-            else estado_X = 1;
-            break;
-        case 1:
-            AcionamentoMotorX(1);
-            if (FdC_X_Min == 1) {
-                posicao_X = 0;
-                referenciado_X = true;
-                lcd.cls(); lcd.printf("X referenciado\nX=0");
-            }
-            break;
+void ReferenciarX() { 
+    LED = 1;
+    if (FdC_X_Max == 1) {AcionamentoMotorX(0);
     }
+    if (FdC_X_Max == 0){
+        posicao_X = 0;
+        referenciado_X = true;
+        lcd.cls(); lcd.printf("X referenciado\nX=0");
+        }
 }
+
+
 
 void ReferenciarY() {
-    if (referenciado_Y) return;
-    switch (estado_Y) {
-        case 0:
-            if (FdC_Y_Min == 1) AcionamentoMotorY(0);
-            else estado_Y = 1;
-            break;
-        case 1:
-            AcionamentoMotorY(1);
-            if (FdC_Y_Min == 1) {
-                posicao_Y = 0;
-                referenciado_Y = true;
-                lcd.cls(); lcd.printf("Y referenciado\nY=0");
-            }
-            break;
+    LED = 0;
+
+    if (FdC_Y_Min == 1) {AcionamentoMotorY(1);
     }
+    if (FdC_Y_Min == 0){
+        posicao_Y = 0;
+        referenciado_Y = true;
+        lcd.cls(); lcd.printf("Y referenciado\nX=0");
+        }
 }
+
 
 float passosParaMM(int passos) {
     return passos * PASSO_MM;
@@ -217,6 +202,7 @@ void MoverParaPosicaoFornecida(int alvo_X, int alvo_Y, int alvo_Z) {
 
 
 int main() {
+    LED = 1;
     //while (!referenciado_Z) ReferenciarZ();
     while (!referenciado_X) ReferenciarX();
     while (!referenciado_Y) ReferenciarY();
