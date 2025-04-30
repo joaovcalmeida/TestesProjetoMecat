@@ -110,7 +110,6 @@ void ReferenciarX() {
 }
 
 
-
 void ReferenciarY() {
     LED = 0;
 
@@ -127,7 +126,7 @@ void ReferenciarY() {
 float passosParaMM(int passos) {
     return passos * PASSO_MM;
 }
-
+//
 void SalvarPosicaoCOLETA() {
     posicao_coletaX = posicao_X;
     posicao_coletaY = posicao_Y;
