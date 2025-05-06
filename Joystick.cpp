@@ -1,6 +1,6 @@
 // joystick.cpp
 #include "mbed.h"
-#include "joystick.h"
+#include "Joystick.h"
 
 // Joystick nas portas analógicas
 static AnalogIn joystickX(A0);
