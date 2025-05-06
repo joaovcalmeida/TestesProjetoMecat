@@ -1,7 +1,7 @@
 // #include "mbed.h"
 // #include "TextLCD.h"
 
-// #define velo 0.1 // tempo entre os passos
+// #define velo 0.005f // tempo entre os passos
 // #define PASSO_MM 1.25f // 1 passo = 1.25mm
 
 // // LCD (RS, E, D4, D5, D6, D7)
@@ -20,7 +20,7 @@
 // // Controle TB6560 - Eixo Y
 // DigitalOut StepY(D11);
 // DigitalOut DirY(D12);
-// DigitalOut EnableY(D13); // opcional
+// DigitalOut EnableY(D6); // opcional
 
 // // Botões de input
 // DigitalIn BotaoZP(PA_4);
@@ -34,14 +34,13 @@
 // // Sensores de fim de curso
 // DigitalIn FdC_Z_Min(PC_0);
 // DigitalIn FdC_Z_Max(PC_1);
-// DigitalIn FdC_X_Max(A2);
-// DigitalIn FdC_X_Min(A3);
-// DigitalIn FdC_Y_Max(A5);
-// DigitalIn FdC_Y_Min(A4);
+// DigitalIn FdC_X_Max(A2);  //A2
+// DigitalIn FdC_X_Min(A3); //A3
+// DigitalIn FdC_Y_Max(A5); //A5
+// DigitalIn FdC_Y_Min(A4); //A4
 
 // // Variáveis de posição (em passos)
 // int posicao_X = 0, posicao_Y = 0, posicao_Z = 0;
-// int estado_Z = 0, estado_X = 0, estado_Y = 0;
 // bool referenciado_Z = false, referenciado_X = false, referenciado_Y = false;
 
 // // Vetores e controle de posições salvas
@@ -51,25 +50,20 @@
 // bool posicao_de_coleta_salva = false;
 // int posicao_coletaX = 0, posicao_coletaY = 0, posicao_coletaZ = 0;
 
-// // Prototipagem de funções
-// void AcionamentoMotorX(int sentido);
-// void AcionamentoMotorY(int sentido);
-// void AcionamentoMotorZ(int estado);
-
 // void AcionamentoMotorX(int sentido) {
 //     DirX = sentido;
 //     StepX = 1;
-//     wait_ms(1);
+//     wait_us(600);
 //     StepX = 0;
-//     wait_ms(1);
+//     wait_us(600);
 // }
 
 // void AcionamentoMotorY(int sentido) {
 //     DirY = sentido;
 //     StepY = 1;
-//     wait_ms(1);
+//     wait_us(1000);
 //     StepY = 0;
-//     wait_ms(1);
+//     wait_us(1000);
 // }
 
 // void AcionamentoMotorZ(int estado) {
@@ -78,15 +72,6 @@
 //         case 1: for (int i = 0; i < 4; i++) { MotorZ = f[i]; wait(velo); } posicao_Z++; break;
 //         case 2: for (int i = 3; i >= 0; i--) { MotorZ = f[i]; wait(velo); } posicao_Z--; break;
 //         default: MotorZ = 0; break;
-//     }
-// }
-
-// void ReferenciarZ() {
-//     if (FdC_Z_Max == 1) { AcionamentoMotorX(1); }
-//     if (FdC_Z_Max == 0) {
-//         posicao_Z = 0;
-//         referenciado_Z = true;
-//         lcd.cls(); lcd.printf("Z referenciado\nX=0");
 //     }
 // }
 
@@ -106,11 +91,9 @@
 //     if (FdC_Y_Min == 0) {
 //         posicao_Y = 0;
 //         referenciado_Y = true;
-//         lcd.cls(); lcd.printf("Y referenciado\nX=0");
+//         lcd.cls(); lcd.printf("Y referenciado\nY=0");
 //     }
 // }
-
-
 
 // float passosParaMM(int passos) {
 //     return passos * PASSO_MM;
@@ -192,17 +175,16 @@
 //     while (!referenciado_X) ReferenciarX();
 //     while (!referenciado_Y) ReferenciarY();
 
-//     const float zona_morta = 0.2;
-
 //     while (true) {
 //         float leituraX = JoyX.read();
 //         float leituraY = JoyY.read();
 
-//         if (leituraX > 0.6) { AcionamentoMotorX(1); posicao_X++; }
-//         else if (leituraX < 0.4) { AcionamentoMotorX(0); posicao_X--; }
+//         if (leituraY > 0.6f) { AcionamentoMotorY(1); posicao_Y++; }
+//         else if (leituraY < 0.4f) { AcionamentoMotorY(0); posicao_Y--; }
 
-//         if (leituraY > 0.6) { AcionamentoMotorY(1); posicao_Y++; }
-//         else if (leituraY < 0.4) { AcionamentoMotorY(0); posicao_Y--; }
+//         if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
+//         else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
+
 
 //         if (BotaoZP == 0) AcionamentoMotorZ(1);
 //         else if (BotaoZN == 0) AcionamentoMotorZ(2);
