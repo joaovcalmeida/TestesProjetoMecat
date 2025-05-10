@@ -1,3 +1,4 @@
+
 // #include "mbed.h"
 // #include "TextLCD.h"
 
@@ -5,9 +6,11 @@
 // #define PASSO_MM 1.25f // 1 passo = 1.25mm
 
 // // LCD (RS, E, D4, D5, D6, D7)
-// TextLCD lcd(PA_5, PA_6, PA_7, PA_8, PA_9, PA_10);
+// // TextLCD lcd(PA_5, PA_6, PA_7, PA_8, PA_9, PA_10);
 
-// DigitalOut LED(PA_5);
+// I2C i2c_lcd(I2C_SDA, I2C_SCL); // SDA, SCL >>> NUCLEO: D14,D15
+// //I2C Portexpander PCF8574
+// TextLCD_I2C lcd(&i2c_lcd, 0x4e, TextLCD::LCD20x4); // I2C bus, PCF8574 Slaveaddress, LCD Type Original = 0x42 <<< Sempre verificar o endereço do seu modulo!!!
 
 // // Controle de motor Z (mantido via BusOut)
 // BusOut MotorZ(D5, D4, D3, D2);
@@ -76,7 +79,6 @@
 // }
 
 // void ReferenciarX() {
-//     LED = 1;
 //     if (FdC_X_Max == 1) { AcionamentoMotorX(0); }
 //     if (FdC_X_Max == 0) {
 //         posicao_X = 0;
@@ -86,7 +88,6 @@
 // }
 
 // void ReferenciarY() {
-//     LED = 0;
 //     if (FdC_Y_Min == 1) { AcionamentoMotorY(1); }
 //     if (FdC_Y_Min == 0) {
 //         posicao_Y = 0;
@@ -171,7 +172,8 @@
 // }
 
 // int main() {
-//     LED = 1;
+//     lcd.setCursor(TextLCD::CurOff_BlkOn);
+//     lcd.setBacklight(TextLCD::LightOn);
 //     while (!referenciado_X) ReferenciarX();
 //     while (!referenciado_Y) ReferenciarY();
 
