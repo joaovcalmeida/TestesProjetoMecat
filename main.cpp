@@ -30,6 +30,7 @@ bool referenciado_X = false, referenciado_Y = false, referenciado_Z = false;
 
 const int tamanho_array = 100;
 int posicoes_X[tamanho_array], posicoes_Y[tamanho_array], posicoes_Z[tamanho_array];
+int volumes[tamanho_array];
 int num_posicoes_salvas = 0;
 bool posicao_de_coleta_salva = false;
 int posicao_coletaX = 0, posicao_coletaY = 0, posicao_coletaZ = 0;
@@ -97,10 +98,24 @@ void SalvarPosicaoCOLETA() {
     wait_ms(2000);
 }
 
+void MoverPara(int x, int y, int z) {
+    while (posicao_X != x) {
+        if (posicao_X < x) { AcionamentoMotorX(1); posicao_X++; }
+        else { AcionamentoMotorX(0); posicao_X--; }
+    }
+    while (posicao_Y != y) {
+        if (posicao_Y < y) { AcionamentoMotorY(1); posicao_Y++; }
+        else { AcionamentoMotorY(0); posicao_Y--; }
+    }
+    while (posicao_Z != z) {
+        if (posicao_Z < z) { AcionamentoMotorZ(1); posicao_Z++; }
+        else { AcionamentoMotorZ(2); posicao_Z--; }
+    }
+}
+
 int main() {
     lcd.setCursor(TextLCD::CurOff_BlkOn);
     lcd.setBacklight(TextLCD::LightOn);
-
     encoderA.rise(&encoderSubir);
 
     while (!referenciado_X) ReferenciarX();
@@ -128,13 +143,13 @@ int main() {
         }
     }
 
-    // --- Encoder para número de pontos ---
     lcd.cls();
-    lcd.locate(0, 0); lcd.printf("Quantos pontos?");
+    lcd.locate(0, 0); lcd.printf("Quantos pontos");
+    lcd.locate(0, 1); lcd.printf("de deposito?");
 
     while (true) {
-        lcd.locate(0, 1); lcd.printf("Selecionado: %d ", encoder_val);
-        wait_ms(500);
+        lcd.locate(0, 2); lcd.printf("Selecionado: %d ", encoder_val);
+        wait_ms(300);
         if (BotaoInput == 0) {
             num_pontos_lib = encoder_val;
             while (BotaoInput == 0);
@@ -142,28 +157,64 @@ int main() {
         }
     }
 
-    lcd.cls();
-    lcd.printf("Selecione ponto 1");
+    for (int i = 0; i < num_pontos_lib; i++) {
+        lcd.cls();
+        lcd.locate(0, 0); lcd.printf("Ponto %d: selecione", i + 1);
 
-    while (true) {
-        float leituraX = JoyX.read();
-        float leituraY = JoyY.read();
+        while (true) {
+            float leituraX = JoyX.read();
+            float leituraY = JoyY.read();
 
-        if (leituraY > 0.6f) { AcionamentoMotorY(1); posicao_Y++; }
-        else if (leituraY < 0.4f) { AcionamentoMotorY(0); posicao_Y--; }
+            if (leituraY > 0.6f) { AcionamentoMotorY(1); posicao_Y++; }
+            else if (leituraY < 0.4f) { AcionamentoMotorY(0); posicao_Y--; }
 
-        if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
-        else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
+            if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
+            else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
 
-        if (BotaoZP == 0) AcionamentoMotorZ(1);
-        else if (BotaoZN == 0) AcionamentoMotorZ(2);
-        else MotorZ = 0;
+            if (BotaoInput == 0) {
+                posicoes_X[i] = posicao_X;
+                posicoes_Y[i] = posicao_Y;
+                posicoes_Z[i] = posicao_Z;
 
-        if (BotaoInput == 0) {
+                lcd.cls();
+                lcd.locate(0, 0); lcd.printf("X: %.1f Y: %.1f", passosParaMM(posicao_X), passosParaMM(posicao_Y));
+                lcd.locate(0, 1); lcd.printf("Z: %.1f mm", passosParaMM(posicao_Z));
+                wait_ms(2000);
+                while (BotaoInput == 0);
+                break;
+            }
+        }
+
+        lcd.cls();
+        lcd.locate(0, 0); lcd.printf("Qnt ml ponto %d?", i + 1);
+        encoder_val = 0;
+
+        while (true) {
+            lcd.locate(0, 1); lcd.printf("Selecionado: %d ml ", encoder_val);
             wait_ms(300);
-            // SalvarPosicaoLiberacao();
-            while (BotaoInput == 0);
-            wait_ms(100);
+            if (BotaoInput == 0) {
+                volumes[i] = encoder_val;
+                while (BotaoInput == 0);
+                break;
+            }
         }
     }
+
+    lcd.cls();
+    lcd.printf("Iniciando fluxo...");
+    wait_ms(2000);
+
+    for (int i = 0; i < num_pontos_lib; i++) {
+        int viagens = volumes[i]; // 1 ml por viagem
+        for (int v = 0; v < viagens; v++) {
+            MoverPara(posicao_coletaX, posicao_coletaY, posicao_coletaZ);
+            wait_ms(500);
+            MoverPara(posicoes_X[i], posicoes_Y[i], posicoes_Z[i]);
+            wait_ms(500);
+        }
+    }
+
+    lcd.cls();
+    lcd.printf("Pipetagem OK!");
+    while (true);
 }
