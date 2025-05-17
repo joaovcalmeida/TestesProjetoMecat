@@ -1,7 +1,7 @@
 #include "mbed.h"
 #include "TextLCD.h"
 
-#define velo 0.005f
+#define velo 0.002f
 #define PASSO_MM 0.025f
 
 I2C i2c_lcd(I2C_SDA, I2C_SCL);
@@ -11,14 +11,14 @@ BusOut MotorZ(D5, D4, D3, D2);
 DigitalOut StepX(D8), DirX(D9), EnableX(D10);
 DigitalOut StepY(D11), DirY(D12), EnableY(D6);
 
-DigitalIn BotaoZP(PA_4);
-DigitalIn BotaoZN(PB_0);
+DigitalIn BotaoZP(PB_13);
+DigitalIn BotaoZN(PB_14);
 DigitalIn BotaoInput(PC_13, PullUp);
 
 AnalogIn JoyX(A0);
 AnalogIn JoyY(A1);
 
-DigitalIn FdC_Z_Min(PC_0), FdC_Z_Max(PC_1);
+DigitalIn FdC_Z_Min(PC_2), FdC_Z_Max(PC_3);
 DigitalIn FdC_X_Max(A2), FdC_X_Min(A3);
 DigitalIn FdC_Y_Max(A5), FdC_Y_Min(A4);
 
@@ -60,8 +60,8 @@ void AcionamentoMotorZ(int estado) {
     switch (estado) {
         case 1: for (int i = 0; i < 4; i++) { MotorZ = f[i]; wait(velo); } posicao_Z++; break;
         case 2: for (int i = 3; i >= 0; i--) { MotorZ = f[i]; wait(velo); } posicao_Z--; break;
-        default: MotorZ = 0; break;
     }
+     MotorZ = 0;
 }
 
 void ReferenciarX() {
@@ -77,6 +77,14 @@ void ReferenciarY() {
     posicao_Y = 0;
     referenciado_Y = true;
     lcd.cls(); lcd.printf("Y referenciado\nY=0");
+    wait_ms(2000);
+}
+
+void ReferenciarZ() {
+    while (FdC_Z_Max == 0) { AcionamentoMotorZ(1); }
+    posicao_Z = 0;
+    referenciado_Z = true;
+    lcd.cls(); lcd.printf("Z referenciado\nZ=0");
     wait_ms(2000);
 }
 
@@ -118,6 +126,7 @@ int main() {
     lcd.setBacklight(TextLCD::LightOn);
     encoderA.rise(&encoderSubir);
 
+    while (!referenciado_Z) ReferenciarZ();
     while (!referenciado_X) ReferenciarX();
     while (!referenciado_Y) ReferenciarY();
 
@@ -134,6 +143,10 @@ int main() {
 
         if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
         else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
+
+        if (BotaoZP == 1 && FdC_Z_Max == 0) AcionamentoMotorZ(1);
+        else if (BotaoZN == 1 && FdC_Z_Min == 0) AcionamentoMotorZ(2);
+        else AcionamentoMotorZ(0);
 
         if (BotaoInput == 0) {
             wait_ms(300);
@@ -171,6 +184,9 @@ int main() {
             if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
             else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
 
+            if (BotaoZP == 1 && FdC_Z_Max == 0) {AcionamentoMotorZ(1); posicao_Z++; }
+            else if (BotaoZN == 1 && FdC_Z_Min == 0) {AcionamentoMotorZ(2); posicao_Z--; }
+
             if (BotaoInput == 0) {
                 posicoes_X[i] = posicao_X;
                 posicoes_Y[i] = posicao_Y;
@@ -205,10 +221,14 @@ int main() {
     wait_ms(2000);
 
     for (int i = 0; i < num_pontos_lib; i++) {
-        int viagens = volumes[i]; // 1 ml por viagem
+        int viagens = volumes[i];
         for (int v = 0; v < viagens; v++) {
+            lcd.cls();
+            lcd.printf("Ponto Coleta");
             MoverPara(posicao_coletaX, posicao_coletaY, posicao_coletaZ);
             wait_ms(500);
+            lcd.cls();
+            lcd.printf("Ponto %d", i+1);
             MoverPara(posicoes_X[i], posicoes_Y[i], posicoes_Z[i]);
             wait_ms(500);
         }
