@@ -61,7 +61,7 @@
 //         case 1: for (int i = 0; i < 4; i++) { MotorZ = f[i]; wait(velo); } posicao_Z++; break;
 //         case 2: for (int i = 3; i >= 0; i--) { MotorZ = f[i]; wait(velo); } posicao_Z--; break;
 //     }
-//      MotorZ = 0;
+//     MotorZ = 0;
 // }
 
 // void ReferenciarX() {
@@ -126,9 +126,18 @@
 //     lcd.setBacklight(TextLCD::LightOn);
 //     encoderA.rise(&encoderSubir);
 
-//     while (!referenciado_Z) ReferenciarZ();
-//     while (!referenciado_X) ReferenciarX();
-//     while (!referenciado_Y) ReferenciarY();
+//     // NOVA LÓGICA DE INÍCIO
+//     lcd.cls();
+//     lcd.locate(0, 0); lcd.printf("Deseja referenciar?");
+//     lcd.locate(0, 1); lcd.printf("Pressione INPUT");
+
+//     while (BotaoInput == 1); // Espera pressionar
+//     wait_ms(300);
+//     while (BotaoInput == 0); // Espera soltar
+
+//     ReferenciarZ();
+//     ReferenciarX();
+//     ReferenciarY();
 
 //     lcd.cls();
 //     lcd.locate(0, 0); lcd.printf("Selecione coleta");
@@ -184,9 +193,8 @@
 //             if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
 //             else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
 
-//             if (BotaoZP == 1 && FdC_Z_Max == 0) AcionamentoMotorZ(1);
-//             else if (BotaoZN == 1 && FdC_Z_Min == 0) AcionamentoMotorZ(2);
-//             else AcionamentoMotorZ(0);
+//             if (BotaoZP == 1 && FdC_Z_Max == 0) {AcionamentoMotorZ(1); posicao_Z++; }
+//             else if (BotaoZN == 1 && FdC_Z_Min == 0) {AcionamentoMotorZ(2); posicao_Z--; }
 
 //             if (BotaoInput == 0) {
 //                 posicoes_X[i] = posicao_X;
