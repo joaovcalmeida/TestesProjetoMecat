@@ -17,6 +17,7 @@ DigitalIn BotaoZP(PB_13);
 DigitalIn BotaoZN(PB_14);
 DigitalIn BotaoInput(PC_13, PullUp);
 
+DigitalIn BotaoEmergencia(PC_4, PullUp);
 AnalogIn JoyX(A0);
 AnalogIn JoyY(A1);
 
@@ -40,6 +41,7 @@ int posicao_coletaX = 0, posicao_coletaY = 0, posicao_coletaZ = 0;
 int num_pontos_lib = 0;
 volatile int encoder_val = 0;
 
+
 void AcionarPipeta_Toggle() {
     Pipeta = 0;
     wait_ms(1200);  // Tempo suficiente para a pipeta alternar o estado
@@ -53,18 +55,45 @@ void encoderSubir() {
 }
 
 void AcionamentoMotorX(int sentido) {
+    if (BotaoEmergencia == 0) {
+        EnableX = 1;
+        EnableY = 1;
+        MotorZ = 0;
+        lcd.cls();
+        lcd.printf("EMERGENCIA!\nReset obrigatorio");
+        while (true);  // trava o sistema até reset
+    }
     DirX = sentido;
     StepX = 1; wait_us(600);
     StepX = 0; wait_us(600);
 }
 
+
 void AcionamentoMotorY(int sentido) {
+    if (BotaoEmergencia == 0) {
+        EnableX = 1;
+        EnableY = 1;
+        MotorZ = 0;
+        lcd.cls();
+        lcd.printf("EMERGENCIA!\nReset obrigatorio");
+        while (true);
+    }
     DirY = sentido;
     StepY = 1; wait_us(1000);
     StepY = 0; wait_us(1000);
 }
 
+
 void AcionamentoMotorZ(int estado) {
+    if (BotaoEmergencia == 0) {
+        EnableX = 1;
+        EnableY = 1;
+        MotorZ = 0;
+        lcd.cls();
+        lcd.printf("EMERGENCIA!\nReset obrigatorio");
+        while (true);
+    }
+
     int f[4] = {0x01, 0x02, 0x04, 0x08};
     switch (estado) {
         case 1: for (int i = 0; i < 4; i++) { MotorZ = f[i]; wait(velo); } posicao_Z++; break;
@@ -72,6 +101,7 @@ void AcionamentoMotorZ(int estado) {
     }
     MotorZ = 0;
 }
+
 
 void ReferenciarX() {
     while (FdC_X_Max == 1) { AcionamentoMotorX(0); }
