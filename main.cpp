@@ -260,7 +260,7 @@ int main() {
         }
 
         lcd.cls();
-        lcd.locate(0, 0); lcd.printf("Qnt ml ponto %d?", i + 1);
+        lcd.locate(0, 0); lcd.printf("Qnts mls no ponto %d?", i + 1);
         encoder_val = 0;
 
         while (true) {
@@ -282,13 +282,16 @@ int main() {
     for (int i = 0; i < num_pontos_lib; i++) {
     int viagens = volumes[i];
     for (int v = 0; v < viagens; v++) {
-        lcd.cls(); lcd.printf("Ponto Coleta");
+        lcd.cls(); 
+        lcd.locate(0,0); lcd.printf("Indo extrair");
+        lcd.locate(0,1); lcd.printf("do ponto de coleta");
+        
         MoverPara(posicao_coletaX, posicao_coletaY, posicao_coletaZ);
         wait_ms(300);
         AcionarPipeta_Toggle(); // sugar
         wait_ms(1000);           // espera antes de subir Z novamente
 
-        lcd.cls(); lcd.printf("Ponto %d", i+1);
+        lcd.cls(); lcd.printf("Indo para Ponto %d", i+1);
         MoverPara(posicoes_X[i], posicoes_Y[i], posicoes_Z[i]);
         wait_ms(300);
         AcionarPipeta_Toggle(); // extrair
