@@ -15,7 +15,7 @@ DigitalOut StepY(D11), DirY(D12), EnableY(D6);
 
 DigitalIn BotaoZP(PB_13);
 DigitalIn BotaoZN(PB_14);
-DigitalIn BotaoInput(PC_13, PullUp);
+DigitalIn BotaoEncoder(PB_12, PullUp);
 
 DigitalIn BotaoEmergencia(PC_4, PullUp);
 AnalogIn JoyX(A0);
@@ -63,6 +63,10 @@ void AcionamentoMotorX(int sentido) {
         lcd.printf("EMERGENCIA!\nReset obrigatorio");
         while (true);  // trava o sistema até reset
     }
+
+    if (FdC_X_Max == 0 && sentido == 0) return;
+    if (FdC_X_Min == 0 && sentido == 1) return;
+
     DirX = sentido;
     StepX = 1; wait_us(600);
     StepX = 0; wait_us(600);
@@ -104,28 +108,97 @@ void AcionamentoMotorZ(int estado) {
 
 
 void ReferenciarX() {
-    while (FdC_X_Max == 1) { AcionamentoMotorX(0); }
-    posicao_X = 0;
-    referenciado_X = true;
-    lcd.cls(); lcd.printf("X referenciado\nX=0");
-    wait_ms(2000);
+    int etapa = 1;
+    while (!referenciado_X) {
+        switch (etapa) {
+            case 1:
+                if (FdC_X_Max == 1) AcionamentoMotorX(0);
+                else etapa = 2;
+                break;
+
+            case 2:
+                {
+                    Timer t;
+                    t.start();
+                    while (t.read_ms() < 300) AcionamentoMotorX(1);
+                    t.stop();
+                    etapa = 3;
+                }
+                break;
+
+            case 3:
+                posicao_X = 0;
+                referenciado_X = true;
+                EnableX = 0;
+                lcd.cls(); lcd.printf("X referenciado\nX=0");
+                wait_ms(2000);
+                break;
+        }
+    }
 }
+
 
 void ReferenciarY() {
-    while (FdC_Y_Min == 1) { AcionamentoMotorY(1); }
-    posicao_Y = 0;
-    referenciado_Y = true;
-    lcd.cls(); lcd.printf("Y referenciado\nY=0");
-    wait_ms(2000);
+    int etapa = 1;
+    while (!referenciado_Y) {
+        switch (etapa) {
+            case 1:
+                if (FdC_Y_Min == 1) AcionamentoMotorY(1);
+                else etapa = 2;
+                break;
+
+            case 2:
+                {
+                    Timer t;
+                    t.start();
+                    while (t.read_ms() < 200) AcionamentoMotorY(0);
+                    t.stop();
+                    etapa = 3;
+                }
+                break;
+
+            case 3:
+                posicao_Y = 0;
+                referenciado_Y = true;
+                EnableY = 0;
+                lcd.cls(); lcd.printf("Y referenciado\nY=0");
+                wait_ms(2000);
+                break;
+        }
+    }
 }
 
+
 void ReferenciarZ() {
-    while (FdC_Z_Max == 0) { AcionamentoMotorZ(1); }
-    posicao_Z = 0;
-    referenciado_Z = true;
-    lcd.cls(); lcd.printf("Z referenciado\nZ=0");
-    wait_ms(2000);
+    int etapa = 1;
+    while (!referenciado_Z) {
+        switch (etapa) {
+            case 1:
+                if (FdC_Z_Max == 0) AcionamentoMotorZ(1);
+                else etapa = 2;
+                break;
+
+            case 2:
+                {
+                    Timer t;
+                    t.start();
+                    while (t.read_ms() < 300) AcionamentoMotorZ(2);
+                    t.stop();
+                    etapa = 3;
+                }
+                break;
+
+            case 3:
+                posicao_Z = 0;
+                referenciado_Z = true;
+                MotorZ = 0;
+                lcd.cls(); lcd.printf("Z referenciado\nZ=0");
+                wait_ms(2000);
+                break;
+        }
+    }
 }
+
 
 void ElevarZ_AteTopo() {
     while (FdC_Z_Max == 0) {
@@ -152,22 +225,30 @@ void SalvarPosicaoCOLETA() {
     wait_ms(2000);
 }
 
-void MoverPara(int x, int y, int z) {
-    // NOVA LÓGICA: sempre elevar o Z antes de mover X/Y
+void MoverPara(float x, float y, float z) {
+    // Primeiro eleva Z para evitar colisão com frascos
     ElevarZ_AteTopo();
 
     while (posicao_X != x) {
         if (posicao_X < x) { AcionamentoMotorX(1); posicao_X++; }
         else { AcionamentoMotorX(0); posicao_X--; }
     }
+
     while (posicao_Y != y) {
         if (posicao_Y < y) { AcionamentoMotorY(1); posicao_Y++; }
         else { AcionamentoMotorY(0); posicao_Y--; }
     }
+
     while (posicao_Z > z) {
-        AcionamentoMotorZ(2);
+    if (FdC_Z_Min == 1) {
+        lcd.cls(); 
+        lcd.printf("Fim de curso Z atingido");
+        break;
+    }
+    AcionamentoMotorZ(2);
     }
 }
+
 
 int main() {
     lcd.setCursor(TextLCD::CurOff_BlkOn);
@@ -180,9 +261,9 @@ int main() {
     lcd.locate(0, 0); lcd.printf("Deseja referenciar?");
     lcd.locate(0, 1); lcd.printf("Pressione INPUT");
 
-    while (BotaoInput == 1);
+    while (BotaoEncoder == 0);
     wait_ms(300);
-    while (BotaoInput == 0);
+    while (BotaoEncoder == 1);
 
     ReferenciarZ();
     ReferenciarX();
@@ -206,10 +287,10 @@ int main() {
         else if (BotaoZN == 1 && FdC_Z_Min == 0) AcionamentoMotorZ(2);
         else AcionamentoMotorZ(0);
 
-        if (BotaoInput == 0) {
+        if (BotaoEncoder == 1) {
             wait_ms(300);
             SalvarPosicaoCOLETA();
-            while (BotaoInput == 0);
+            while (BotaoEncoder == 1);
             wait_ms(100);
         }
     }
@@ -221,9 +302,9 @@ int main() {
     while (true) {
         lcd.locate(0, 2); lcd.printf("Selecionado: %d ", encoder_val);
         wait_ms(300);
-        if (BotaoInput == 0) {
+        if (BotaoEncoder == 1) {
             num_pontos_lib = encoder_val;
-            while (BotaoInput == 0);
+            while (BotaoEncoder == 1);
             break;
         }
     }
@@ -245,7 +326,7 @@ int main() {
             if (BotaoZP == 1 && FdC_Z_Max == 0) { AcionamentoMotorZ(1); posicao_Z++; }
             else if (BotaoZN == 1 && FdC_Z_Min == 0) { AcionamentoMotorZ(2); posicao_Z--; }
 
-            if (BotaoInput == 0) {
+            if (BotaoEncoder == 1) {
                 posicoes_X[i] = posicao_X;
                 posicoes_Y[i] = posicao_Y;
                 posicoes_Z[i] = posicao_Z;
@@ -254,7 +335,7 @@ int main() {
                 lcd.locate(0, 0); lcd.printf("X: %.1f Y: %.1f", passosParaMM(posicao_X), passosParaMM(posicao_Y));
                 lcd.locate(0, 1); lcd.printf("Z: %.1f mm", passosParaMM(posicao_Z));
                 wait_ms(2000);
-                while (BotaoInput == 0);
+                while (BotaoEncoder == 1);
                 break;
             }
         }
@@ -266,9 +347,9 @@ int main() {
         while (true) {
             lcd.locate(0, 1); lcd.printf("Selecionado: %d ml ", encoder_val);
             wait_ms(300);
-            if (BotaoInput == 0) {
+            if (BotaoEncoder == 1) {
                 volumes[i] = encoder_val;
-                while (BotaoInput == 0);
+                while (BotaoEncoder == 1);
                 break;
             }
         }
