@@ -41,6 +41,10 @@ int posicao_coletaX = 0, posicao_coletaY = 0, posicao_coletaZ = 0;
 int num_pontos_lib = 0;
 volatile int encoder_val = 0;
 
+bool emergencia_ativa = false;
+bool solicitar_referenciamento = false;
+
+
 
 void AcionarPipeta_Toggle() {
     Pipeta = 0;
@@ -49,20 +53,13 @@ void AcionarPipeta_Toggle() {
     wait_ms(600);  // Delay para garantir estabilidade
 }
 
+
 void encoderSubir() {
     if (encoderB == 0 && encoder_val < 10) encoder_val++;
     else if (encoder_val > 0) encoder_val--;
 }
 
 void AcionamentoMotorX(int sentido) {
-    if (BotaoEmergencia == 0) {
-        EnableX = 1;
-        EnableY = 1;
-        MotorZ = 0;
-        lcd.cls();
-        lcd.printf("EMERGENCIA!\nReset obrigatorio");
-        while (true);  // trava o sistema até reset
-    }
 
     if (FdC_X_Max == 0 && sentido == 0) return;
     if (FdC_X_Min == 0 && sentido == 1) return;
@@ -74,14 +71,6 @@ void AcionamentoMotorX(int sentido) {
 
 
 void AcionamentoMotorY(int sentido) {
-    if (BotaoEmergencia == 0) {
-        EnableX = 1;
-        EnableY = 1;
-        MotorZ = 0;
-        lcd.cls();
-        lcd.printf("EMERGENCIA!\nReset obrigatorio");
-        while (true);
-    }
     DirY = sentido;
     StepY = 1; wait_us(1000);
     StepY = 0; wait_us(1000);
@@ -89,14 +78,6 @@ void AcionamentoMotorY(int sentido) {
 
 
 void AcionamentoMotorZ(int estado) {
-    if (BotaoEmergencia == 0) {
-        EnableX = 1;
-        EnableY = 1;
-        MotorZ = 0;
-        lcd.cls();
-        lcd.printf("EMERGENCIA!\nReset obrigatorio");
-        while (true);
-    }
 
     int f[4] = {0x01, 0x02, 0x04, 0x08};
     switch (estado) {
@@ -200,8 +181,74 @@ void ReferenciarZ() {
 }
 
 
+void VerificarEmergencia() {
+    if (BotaoEmergencia == 0) {
+        EnableX = 1;
+        EnableY = 1;
+        MotorZ = 0;
+        emergencia_ativa = true;
+        lcd.cls(); lcd.printf("EMERGENCIA!\nSolte o botao");
+
+        // Espera soltar o botão de emergência
+        while (BotaoEmergencia == 0);
+
+        // Após soltar, solicita reset
+        lcd.cls(); lcd.printf("Aperte INPUT\np/ resetar");
+        while (BotaoEncoder == 1);
+        wait_ms(300);
+        while (BotaoEncoder == 0);
+
+        // Marca como ativo para novo referenciamento
+        emergencia_ativa = false;
+        EnableX = 0;
+        EnableY = 0;
+        MotorZ = 0;
+        solicitar_referenciamento = true;
+
+        // Reseta flags e posições
+        referenciado_X = false;
+        referenciado_Y = false;
+        referenciado_Z = false;
+        posicao_X = 0;
+        posicao_Y = 0;
+        posicao_Z = 0;
+        posicao_de_coleta_salva = false;
+
+        lcd.cls();
+        lcd.printf("Reset OK!");
+        wait_ms(1000);
+    }
+
+    if (solicitar_referenciamento) {
+        lcd.cls();
+        lcd.printf("Aperte INPUT p/\nreferenciar");
+        while (BotaoEncoder == 1);
+        wait_ms(300);
+        while (BotaoEncoder == 0);
+
+        lcd.cls();
+        lcd.printf("Referenciando...");
+        ReferenciarZ();
+        ReferenciarX();
+        ReferenciarY();
+        solicitar_referenciamento = false;
+
+        lcd.cls();
+        lcd.printf("Referenciamento\ncompleto");
+        wait_ms(1500);
+
+        lcd.cls();
+        lcd.locate(0, 0); lcd.printf("Selecione coleta");
+        lcd.locate(0, 1); lcd.printf("Pressione INPUT");
+    }
+}
+
+
+
+
 void ElevarZ_AteTopo() {
     while (FdC_Z_Max == 0) {
+        VerificarEmergencia();
         AcionamentoMotorZ(1);
     }
     posicao_Z = 0;
@@ -228,6 +275,7 @@ void SalvarPosicaoCOLETA() {
 void MoverPara(float x, float y, float z) {
     // Primeiro eleva Z para evitar colisão com frascos
     ElevarZ_AteTopo();
+    VerificarEmergencia();
 
     while (posicao_X != x) {
         if (posicao_X < x) { AcionamentoMotorX(1); posicao_X++; }
@@ -274,6 +322,7 @@ int main() {
     lcd.locate(0, 1); lcd.printf("Pressione INPUT");
 
     while (!posicao_de_coleta_salva) {
+        VerificarEmergencia();
         float leituraX = JoyX.read();
         float leituraY = JoyY.read();
 
@@ -300,6 +349,7 @@ int main() {
     lcd.locate(0, 1); lcd.printf("de deposito?");
 
     while (true) {
+        VerificarEmergencia();
         lcd.locate(0, 2); lcd.printf("Selecionado: %d ", encoder_val);
         wait_ms(300);
         if (BotaoEncoder == 1) {
@@ -345,6 +395,7 @@ int main() {
         encoder_val = 0;
 
         while (true) {
+            VerificarEmergencia();
             lcd.locate(0, 1); lcd.printf("Selecionado: %d ml ", encoder_val);
             wait_ms(300);
             if (BotaoEncoder == 1) {
@@ -361,22 +412,24 @@ int main() {
 
 
     for (int i = 0; i < num_pontos_lib; i++) {
-    int viagens = volumes[i];
-    for (int v = 0; v < viagens; v++) {
-        lcd.cls(); 
-        lcd.locate(0,0); lcd.printf("Indo extrair");
-        lcd.locate(0,1); lcd.printf("do ponto de coleta");
-        
-        MoverPara(posicao_coletaX, posicao_coletaY, posicao_coletaZ);
-        wait_ms(300);
-        AcionarPipeta_Toggle(); // sugar
-        wait_ms(1000);           // espera antes de subir Z novamente
+        int viagens = volumes[i];
+        for (int v = 0; v < viagens; v++) {
 
-        lcd.cls(); lcd.printf("Indo para Ponto %d", i+1);
-        MoverPara(posicoes_X[i], posicoes_Y[i], posicoes_Z[i]);
-        wait_ms(300);
-        AcionarPipeta_Toggle(); // extrair
-        wait_ms(1000);           // espera antes de subir Z novamente
+            VerificarEmergencia();
+            lcd.cls(); 
+            lcd.locate(0,0); lcd.printf("Indo extrair");
+            lcd.locate(0,1); lcd.printf("do ponto de coleta");
+            
+            MoverPara(posicao_coletaX, posicao_coletaY, posicao_coletaZ);
+            wait_ms(300);
+            AcionarPipeta_Toggle(); // sugar
+            wait_ms(1000);           // espera antes de subir Z novamente
+
+            lcd.cls(); lcd.printf("Indo para Ponto %d", i+1);
+            MoverPara(posicoes_X[i], posicoes_Y[i], posicoes_Z[i]);
+            wait_ms(300);
+            AcionarPipeta_Toggle(); // extrair
+            wait_ms(1000);           // espera antes de subir Z novamente
     }
 }
 
