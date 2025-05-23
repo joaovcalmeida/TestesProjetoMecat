@@ -18,6 +18,7 @@ DigitalIn BotaoZN(PB_14);
 DigitalIn BotaoEncoder(PB_12, PullUp);
 
 DigitalIn BotaoEmergencia(PC_4, PullUp);
+DigitalOut Buzzer(PA_8);
 AnalogIn JoyX(A0);
 AnalogIn JoyY(A1);
 
@@ -72,6 +73,10 @@ void AcionamentoMotorX(int sentido) {
 
 void AcionamentoMotorY(int sentido) {
     DirY = sentido;
+
+    if (FdC_Y_Max == 0 && sentido == 0) return;
+    if (FdC_Y_Min == 0 && sentido == 1) return;
+
     StepY = 1; wait_us(1000);
     StepY = 0; wait_us(1000);
 }
@@ -87,10 +92,159 @@ void AcionamentoMotorZ(int estado) {
     MotorZ = 0;
 }
 
+void VerificarEmergencia() {
+    if (BotaoEmergencia == 0) {
+        EnableX = 1;
+        EnableY = 1;
+        MotorZ = 0;
+        emergencia_ativa = true;
+        lcd.cls(); lcd.printf("EMERGENCIA!\nSolte o botao");
 
+        // Espera soltar o botão de emergência
+        while (BotaoEmergencia == 0) {
+            Buzzer = 1;
+            wait_ms(200);
+            Buzzer = 0;
+            wait_ms(200);
+        }
+
+        // Após soltar, solicita reset
+        lcd.cls(); lcd.printf("Aperte INPUT\np/ resetar");
+        while (BotaoEncoder == 1);
+        wait_ms(300);
+        while (BotaoEncoder == 0);
+
+        // Marca como ativo para novo referenciamento
+        emergencia_ativa = false;
+        EnableX = 0;
+        EnableY = 0;
+        MotorZ = 0;
+        solicitar_referenciamento = false;
+
+        // Reseta flags e posições
+        referenciado_X = false;
+        referenciado_Y = false;
+        referenciado_Z = false;
+        posicao_X = 0;
+        posicao_Y = 0;
+        posicao_Z = 0;
+        posicao_de_coleta_salva = false;
+
+        lcd.cls();
+        lcd.printf("Reset OK!");
+        wait_ms(1000);
+
+        // Início do referenciamento incorporado (sem chamada de função)
+        lcd.cls();
+        lcd.printf("Referenciando...");
+
+        // Z
+        int etapaZ = 1;
+        while (!referenciado_Z) {
+            switch (etapaZ) {
+                case 1:
+                    if (FdC_Z_Max == 0) {
+                        int f[4] = {0x01, 0x02, 0x04, 0x08};
+                        for (int i = 0; i < 4; i++) { MotorZ = f[i]; wait(velo); }
+                        posicao_Z++;
+                    } else etapaZ = 2;
+                    break;
+                case 2:
+                    {
+                        Timer t;
+                        t.start();
+                        while (t.read_ms() < 300) {
+                            int f[4] = {0x01, 0x02, 0x04, 0x08};
+                            for (int i = 3; i >= 0; i--) { MotorZ = f[i]; wait(velo); }
+                            posicao_Z--;
+                        }
+                        t.stop();
+                        etapaZ = 3;
+                    }
+                    break;
+                case 3:
+                    posicao_Z = 0;
+                    referenciado_Z = true;
+                    MotorZ = 0;
+                    lcd.cls(); lcd.printf("Z referenciado\nZ=0");
+                    wait_ms(2000);
+                    break;
+            }
+        }
+
+        // X
+        int etapaX = 1;
+        while (!referenciado_X) {
+            switch (etapaX) {
+                case 1:
+                    if (FdC_X_Max == 1) {
+                        DirX = 0; StepX = 1; wait_us(600); StepX = 0; wait_us(600);
+                    } else etapaX = 2;
+                    break;
+                case 2:
+                    {
+                        Timer t;
+                        t.start();
+                        while (t.read_ms() < 300) {
+                            DirX = 1; StepX = 1; wait_us(600); StepX = 0; wait_us(600);
+                        }
+                        t.stop();
+                        etapaX = 3;
+                    }
+                    break;
+                case 3:
+                    posicao_X = 0;
+                    referenciado_X = true;
+                    EnableX = 0;
+                    lcd.cls(); lcd.printf("X referenciado\nX=0");
+                    wait_ms(2000);
+                    break;
+            }
+        }
+
+        // Y
+        int etapaY = 1;
+        while (!referenciado_Y) {
+            switch (etapaY) {
+                case 1:
+                    if (FdC_Y_Min == 1) {
+                        DirY = 1; StepY = 1; wait_us(1000); StepY = 0; wait_us(1000);
+                    } else etapaY = 2;
+                    break;
+                case 2:
+                    {
+                        Timer t;
+                        t.start();
+                        while (t.read_ms() < 200) {
+                            DirY = 0; StepY = 1; wait_us(1000); StepY = 0; wait_us(1000);
+                        }
+                        t.stop();
+                        etapaY = 3;
+                    }
+                    break;
+                case 3:
+                    posicao_Y = 0;
+                    referenciado_Y = true;
+                    EnableY = 0;
+                    lcd.cls(); lcd.printf("Y referenciado\nY=0");
+                    wait_ms(2000);
+                    break;
+            }
+        }
+
+        lcd.cls();
+        lcd.printf("Referenciamento\ncompleto");
+        wait_ms(1500);
+
+        lcd.cls();
+        lcd.locate(0, 0); lcd.printf("Selecione coleta");
+        lcd.locate(0, 1); lcd.printf("Pressione INPUT");
+    }
+}
 void ReferenciarX() {
     int etapa = 1;
     while (!referenciado_X) {
+        VerificarEmergencia();
         switch (etapa) {
             case 1:
                 if (FdC_X_Max == 1) AcionamentoMotorX(0);
@@ -122,6 +276,7 @@ void ReferenciarX() {
 void ReferenciarY() {
     int etapa = 1;
     while (!referenciado_Y) {
+        VerificarEmergencia();
         switch (etapa) {
             case 1:
                 if (FdC_Y_Min == 1) AcionamentoMotorY(1);
@@ -153,6 +308,7 @@ void ReferenciarY() {
 void ReferenciarZ() {
     int etapa = 1;
     while (!referenciado_Z) {
+        VerificarEmergencia();
         switch (etapa) {
             case 1:
                 if (FdC_Z_Max == 0) AcionamentoMotorZ(1);
@@ -181,69 +337,6 @@ void ReferenciarZ() {
 }
 
 
-void VerificarEmergencia() {
-    if (BotaoEmergencia == 0) {
-        EnableX = 1;
-        EnableY = 1;
-        MotorZ = 0;
-        emergencia_ativa = true;
-        lcd.cls(); lcd.printf("EMERGENCIA!\nSolte o botao");
-
-        // Espera soltar o botão de emergência
-        while (BotaoEmergencia == 0);
-
-        // Após soltar, solicita reset
-        lcd.cls(); lcd.printf("Aperte INPUT\np/ resetar");
-        while (BotaoEncoder == 1);
-        wait_ms(300);
-        while (BotaoEncoder == 0);
-
-        // Marca como ativo para novo referenciamento
-        emergencia_ativa = false;
-        EnableX = 0;
-        EnableY = 0;
-        MotorZ = 0;
-        solicitar_referenciamento = true;
-
-        // Reseta flags e posições
-        referenciado_X = false;
-        referenciado_Y = false;
-        referenciado_Z = false;
-        posicao_X = 0;
-        posicao_Y = 0;
-        posicao_Z = 0;
-        posicao_de_coleta_salva = false;
-
-        lcd.cls();
-        lcd.printf("Reset OK!");
-        wait_ms(1000);
-    }
-
-    if (solicitar_referenciamento) {
-        lcd.cls();
-        lcd.printf("Aperte INPUT p/\nreferenciar");
-        while (BotaoEncoder == 1);
-        wait_ms(300);
-        while (BotaoEncoder == 0);
-
-        lcd.cls();
-        lcd.printf("Referenciando...");
-        ReferenciarZ();
-        ReferenciarX();
-        ReferenciarY();
-        solicitar_referenciamento = false;
-
-        lcd.cls();
-        lcd.printf("Referenciamento\ncompleto");
-        wait_ms(1500);
-
-        lcd.cls();
-        lcd.locate(0, 0); lcd.printf("Selecione coleta");
-        lcd.locate(0, 1); lcd.printf("Pressione INPUT");
-    }
-}
-
-
 
 
 void ElevarZ_AteTopo() {
@@ -254,7 +347,7 @@ void ElevarZ_AteTopo() {
     posicao_Z = 0;
 }
 
-float passosParaMM(int passos) {
+float passosParaMM(int passos) { 
     return passos * PASSO_MM;
 }
 
@@ -287,7 +380,7 @@ void MoverPara(float x, float y, float z) {
         else { AcionamentoMotorY(0); posicao_Y--; }
     }
 
-    while (posicao_Z >= z) {
+    while (posicao_Z > z) {
     if (FdC_Z_Min == 1) {
         lcd.cls(); 
         lcd.printf("Fim de curso Z atingido");
@@ -448,7 +541,9 @@ int main() {
 
     lcd.cls();
     lcd.printf("Pipetagem OK!");
-    wait_ms(1500);
+    wait_ms(1000);
+
+    ElevarZ_AteTopo();
 
     // Exibe tela de retorno
     lcd.cls();
