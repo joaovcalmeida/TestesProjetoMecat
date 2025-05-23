@@ -287,7 +287,7 @@ void MoverPara(float x, float y, float z) {
         else { AcionamentoMotorY(0); posicao_Y--; }
     }
 
-    while (posicao_Z > z) {
+    while (posicao_Z >= z) {
     if (FdC_Z_Min == 1) {
         lcd.cls(); 
         lcd.printf("Fim de curso Z atingido");
@@ -304,6 +304,8 @@ int main() {
     encoderA.rise(&encoderSubir);
 
     Pipeta=1; // Garante que a pipeta está no estado "vazio" (pronta para sugar)
+
+    inicio:
 
     lcd.cls();
     lcd.locate(0, 0); lcd.printf("Deseja referenciar?");
@@ -435,5 +437,20 @@ int main() {
 
     lcd.cls();
     lcd.printf("Pipetagem OK!");
-    while(true);
+    wait_ms(1500);
+
+    // Exibe tela de retorno
+    lcd.cls();
+    lcd.locate(0, 0); lcd.printf("Aperte INPUT p/");
+    lcd.locate(0, 1); lcd.printf("recomecar");
+
+    // Aguarda o usuário apertar e soltar o botão corretamente
+    while (BotaoEncoder == 1); // espera pressionar
+    wait_ms(300);
+    while (BotaoEncoder == 0); // espera soltar
+    wait_ms(300);
+
+    // Reinicia o fluxo
+    goto inicio;
+
 }
