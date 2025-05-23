@@ -235,6 +235,7 @@ void VerificarEmergencia() {
         lcd.cls();
         lcd.printf("Referenciamento\ncompleto");
         wait_ms(1500);
+        NVIC_SystemReset();
 
         lcd.cls();
         lcd.locate(0, 0); lcd.printf("Selecione coleta");
@@ -371,17 +372,20 @@ void MoverPara(float x, float y, float z) {
     VerificarEmergencia();
 
     while (posicao_X != x) {
+        VerificarEmergencia();
         if (posicao_X < x) { AcionamentoMotorX(1); posicao_X++; }
         else { AcionamentoMotorX(0); posicao_X--; }
     }
 
     while (posicao_Y != y) {
+        VerificarEmergencia();
         if (posicao_Y < y) { AcionamentoMotorY(1); posicao_Y++; }
         else { AcionamentoMotorY(0); posicao_Y--; }
     }
 
     while (posicao_Z > z) {
-    if (FdC_Z_Min == 1) {
+        VerificarEmergencia();
+        if (FdC_Z_Min == 1) {
         lcd.cls(); 
         lcd.printf("Fim de curso Z atingido");
         break;
@@ -527,12 +531,14 @@ int main() {
             lcd.locate(0,1); lcd.printf("do ponto de coleta");
             
             MoverPara(posicao_coletaX, posicao_coletaY, posicao_coletaZ);
+            VerificarEmergencia();
             wait_ms(300);
             AcionarPipeta_Toggle(); // sugar
             wait_ms(1000);           // espera antes de subir Z novamente
 
             lcd.cls(); lcd.printf("Indo para Ponto %d", i+1);
             MoverPara(posicoes_X[i], posicoes_Y[i], posicoes_Z[i]);
+            VerificarEmergencia();
             wait_ms(300);
             AcionarPipeta_Toggle(); // extrair
             wait_ms(1000);           // espera antes de subir Z novamente
