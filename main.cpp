@@ -307,6 +307,17 @@ int main() {
 
     inicio:
 
+    // Reset de variáveis
+    referenciado_X = false;
+    referenciado_Y = false;
+    referenciado_Z = false;
+    posicao_de_coleta_salva = false;
+    posicao_X = 0;
+    posicao_Y = 0;
+    posicao_Z = 0;
+    encoder_val = 0;
+    num_pontos_lib = 0;
+
     lcd.cls();
     lcd.locate(0, 0); lcd.printf("Deseja referenciar?");
     lcd.locate(0, 1); lcd.printf("Pressione INPUT");
