@@ -7,24 +7,24 @@
 I2C i2c_lcd(I2C_SDA, I2C_SCL);
 TextLCD_I2C lcd(&i2c_lcd, 0x4e, TextLCD::LCD20x4);
 
-DigitalOut Pipeta(D13);
+DigitalOut Pipeta(PA_5);
 
-BusOut MotorZ(D5, D4, D3, D2);
-DigitalOut StepX(D8), DirX(D9), EnableX(D10);
-DigitalOut StepY(D11), DirY(D12), EnableY(D6);
+BusOut MotorZ(PB_4, PB_5, PB_3, PA_10);
+DigitalOut StepX(PA_9), DirX(PC_7), EnableX(PB_6);
+DigitalOut StepY(PA_7), DirY(PA_6), EnableY(PB_10);
 
 DigitalIn BotaoZP(PB_13);
 DigitalIn BotaoZN(PB_14);
-DigitalIn BotaoEncoder(PB_12, PullUp);
+DigitalIn BotaoEncoder(PB_11, PullUp);
 
 DigitalIn BotaoEmergencia(PC_4, PullUp);
-DigitalOut Buzzer(PA_8);
-AnalogIn JoyX(A0);
-AnalogIn JoyY(A1);
+DigitalOut Buzzer(PA_2);
+AnalogIn JoyX(PA_0);
+AnalogIn JoyY(PA_1);
 
 DigitalIn FdC_Z_Min(PC_2), FdC_Z_Max(PC_3);
-DigitalIn FdC_X_Max(A2), FdC_X_Min(A3);
-DigitalIn FdC_Y_Max(A5), FdC_Y_Min(A4);
+DigitalIn FdC_X_Max(PC_1), FdC_X_Min(PC_0);
+DigitalIn FdC_Y_Max(PA_4), FdC_Y_Min(PB_0);
 
 InterruptIn encoderA(PA_12);
 DigitalIn encoderB(PA_11);
@@ -143,7 +143,7 @@ void VerificarEmergencia() {
         while (!referenciado_Z) {
             switch (etapaZ) {
                 case 1:
-                    if (FdC_Z_Max == 0) {
+                    if (FdC_Z_Max == 1) {
                         int f[4] = {0x01, 0x02, 0x04, 0x08};
                         for (int i = 0; i < 4; i++) { MotorZ = f[i]; wait(velo); }
                         posicao_Z++;
@@ -235,6 +235,7 @@ void VerificarEmergencia() {
         lcd.cls();
         lcd.printf("Referenciamento\ncompleto");
         wait_ms(1500);
+        NVIC_SystemReset();
 
         lcd.cls();
         lcd.locate(0, 0); lcd.printf("Selecione coleta");
@@ -311,7 +312,7 @@ void ReferenciarZ() {
         VerificarEmergencia();
         switch (etapa) {
             case 1:
-                if (FdC_Z_Max == 0) AcionamentoMotorZ(1);
+                if (FdC_Z_Max == 1) AcionamentoMotorZ(1);
                 else etapa = 2;
                 break;
 
@@ -371,17 +372,20 @@ void MoverPara(float x, float y, float z) {
     VerificarEmergencia();
 
     while (posicao_X != x) {
+        VerificarEmergencia();
         if (posicao_X < x) { AcionamentoMotorX(1); posicao_X++; }
         else { AcionamentoMotorX(0); posicao_X--; }
     }
 
     while (posicao_Y != y) {
+        VerificarEmergencia();
         if (posicao_Y < y) { AcionamentoMotorY(1); posicao_Y++; }
         else { AcionamentoMotorY(0); posicao_Y--; }
     }
 
     while (posicao_Z > z) {
-    if (FdC_Z_Min == 1) {
+        VerificarEmergencia();
+        if (FdC_Z_Min == 1) {
         lcd.cls(); 
         lcd.printf("Fim de curso Z atingido");
         break;
@@ -527,12 +531,14 @@ int main() {
             lcd.locate(0,1); lcd.printf("do ponto de coleta");
             
             MoverPara(posicao_coletaX, posicao_coletaY, posicao_coletaZ);
+            VerificarEmergencia();
             wait_ms(300);
             AcionarPipeta_Toggle(); // sugar
             wait_ms(1000);           // espera antes de subir Z novamente
 
             lcd.cls(); lcd.printf("Indo para Ponto %d", i+1);
             MoverPara(posicoes_X[i], posicoes_Y[i], posicoes_Z[i]);
+            VerificarEmergencia();
             wait_ms(300);
             AcionarPipeta_Toggle(); // extrair
             wait_ms(1000);           // espera antes de subir Z novamente
