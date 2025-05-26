@@ -113,6 +113,7 @@ void VerificarEmergencia() {
         while (BotaoEncoder == 1);
         wait_ms(300);
         while (BotaoEncoder == 0);
+    
 
         // Marca como ativo para novo referenciamento
         emergencia_ativa = false;
@@ -340,7 +341,7 @@ void ReferenciarZ() {
 
 
 void ElevarZ_AteTopo() {
-    while (FdC_Z_Max == 0) {
+    while (FdC_Z_Max == 1) {
         VerificarEmergencia();
         AcionamentoMotorZ(1);
     }
@@ -384,12 +385,13 @@ void MoverPara(float x, float y, float z) {
 
     while (posicao_Z > z) {
         VerificarEmergencia();
-        if (FdC_Z_Min == 1) {
+        if (FdC_Z_Min == 0) {
         lcd.cls(); 
         lcd.printf("Fim de curso Z atingido");
         break;
     }
     AcionamentoMotorZ(2);
+    posicao_Z--;
     }
 }
 
@@ -441,11 +443,11 @@ int main() {
         if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
         else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
 
-        if (BotaoZP == 0 && FdC_Z_Max == 0) { 
+        if (BotaoZP == 0 && FdC_Z_Max == 1) { 
             AcionamentoMotorZ(1); 
             posicao_Z++; 
         } 
-        else if (BotaoZN == 0 && FdC_Z_Min == 0) { 
+        else if (BotaoZN == 0 && FdC_Z_Min == 1) { 
             AcionamentoMotorZ(2); 
             posicao_Z--; 
         }
@@ -461,6 +463,8 @@ int main() {
     lcd.cls();
     lcd.locate(0, 0); lcd.printf("Quantos pontos");
     lcd.locate(0, 1); lcd.printf("de deposito?");
+
+     encoder_val = 1;
 
     while (true) {
         VerificarEmergencia();
@@ -487,11 +491,11 @@ int main() {
             if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
             else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
 
-            if (BotaoZP == 0 && FdC_Z_Max == 0) { 
+            if (BotaoZP == 0 && FdC_Z_Max == 1) { 
                 AcionamentoMotorZ(1); 
                 posicao_Z++; 
             } 
-            else if (BotaoZN == 0 && FdC_Z_Min == 0) { 
+            else if (BotaoZN == 0 && FdC_Z_Min == 1) { 
                 AcionamentoMotorZ(2); 
                 posicao_Z--; 
             }
@@ -513,7 +517,7 @@ int main() {
 
         lcd.cls();
         lcd.locate(0, 0); lcd.printf("Qnts mls no ponto %d?", i + 1);
-        encoder_val = 0;
+        encoder_val = 1;
 
         while (true) {
             VerificarEmergencia();
