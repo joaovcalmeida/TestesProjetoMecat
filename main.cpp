@@ -13,8 +13,8 @@ BusOut MotorZ(PB_4, PB_5, PB_3, PA_10);
 DigitalOut StepX(PA_9), DirX(PC_7), EnableX(PB_6);
 DigitalOut StepY(PA_7), DirY(PA_6), EnableY(PB_10);
 
-DigitalIn BotaoZP(PB_13);
-DigitalIn BotaoZN(PB_14);
+DigitalIn BotaoZP(PB_13, PullUp);
+DigitalIn BotaoZN(PB_14, PullUp);
 DigitalIn BotaoEncoder(PB_11, PullUp);
 
 DigitalIn BotaoEmergencia(PC_4, PullUp);
@@ -235,7 +235,6 @@ void VerificarEmergencia() {
         lcd.cls();
         lcd.printf("Referenciamento\ncompleto");
         wait_ms(1500);
-        NVIC_SystemReset();
 
         lcd.cls();
         lcd.locate(0, 0); lcd.printf("Selecione coleta");
@@ -442,9 +441,14 @@ int main() {
         if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
         else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
 
-        if (BotaoZP == 1 && FdC_Z_Max == 0) AcionamentoMotorZ(1);
-        else if (BotaoZN == 1 && FdC_Z_Min == 0) AcionamentoMotorZ(2);
-        else AcionamentoMotorZ(0);
+        if (BotaoZP == 0 && FdC_Z_Max == 0) { 
+            AcionamentoMotorZ(1); 
+            posicao_Z++; 
+        } 
+        else if (BotaoZN == 0 && FdC_Z_Min == 0) { 
+            AcionamentoMotorZ(2); 
+            posicao_Z--; 
+        }
 
         if (BotaoEncoder == 1) {
             wait_ms(300);
@@ -483,8 +487,15 @@ int main() {
             if (leituraX > 0.6f) { AcionamentoMotorX(1); posicao_X++; }
             else if (leituraX < 0.4f) { AcionamentoMotorX(0); posicao_X--; }
 
-            if (BotaoZP == 1 && FdC_Z_Max == 0) { AcionamentoMotorZ(1); posicao_Z++; }
-            else if (BotaoZN == 1 && FdC_Z_Min == 0) { AcionamentoMotorZ(2); posicao_Z--; }
+            if (BotaoZP == 0 && FdC_Z_Max == 0) { 
+                AcionamentoMotorZ(1); 
+                posicao_Z++; 
+            } 
+            else if (BotaoZN == 0 && FdC_Z_Min == 0) { 
+                AcionamentoMotorZ(2); 
+                posicao_Z--; 
+            }
+
 
             if (BotaoEncoder == 1) {
                 posicoes_X[i] = posicao_X;
