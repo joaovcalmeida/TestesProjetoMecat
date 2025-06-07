@@ -4,6 +4,8 @@
 #define velo 0.003f
 #define PASSO_MM 0.025f
 
+
+//Definição das variáveis e suas portas lógicas
 I2C i2c_lcd(I2C_SDA, I2C_SCL);
 TextLCD_I2C lcd(&i2c_lcd, 0x4e, TextLCD::LCD20x4);
 
@@ -46,7 +48,7 @@ bool emergencia_ativa = false;
 bool solicitar_referenciamento = false;
 
 
-
+//Função para acionar a pipeta para a coleta ou depósito
 void AcionarPipeta_Toggle() {
     Pipeta = 0;
     wait_ms(1200);  // Tempo suficiente para a pipeta alternar o estado
@@ -54,12 +56,13 @@ void AcionarPipeta_Toggle() {
     wait_ms(600);  // Delay para garantir estabilidade
 }
 
-
+//Função que permite a mudanção de valores do armazenados pelo enconder, de acordo com sua rotação
 void encoderSubir() {
     if (encoderB == 0 && encoder_val < 10) encoder_val++;
     else if (encoder_val > 0) encoder_val--;
 }
 
+//Aciona Motor X
 void AcionamentoMotorX(int sentido) {
 
     if (FdC_X_Max == 0 && sentido == 0) return;
@@ -70,7 +73,7 @@ void AcionamentoMotorX(int sentido) {
     StepX = 0; wait_us(600);
 }
 
-
+//Aciona Motor Y
 void AcionamentoMotorY(int sentido) {
     DirY = sentido;
 
@@ -81,7 +84,7 @@ void AcionamentoMotorY(int sentido) {
     StepY = 0; wait_us(1000);
 }
 
-
+//Aciona Motor Z, utilizando lógica diferente, tendo em vista que não utilizou-se nesse caso de um driver comercial
 void AcionamentoMotorZ(int estado) {
 
     int f[4] = {0x01, 0x02, 0x04, 0x08};
@@ -92,6 +95,7 @@ void AcionamentoMotorZ(int estado) {
     MotorZ = 0;
 }
 
+//Função responsável por avaliar se o botão de emergência está acionado para iniciar a rotina de emergência
 void VerificarEmergencia() {
     if (BotaoEmergencia == 0) {
         EnableX = 1;
@@ -140,9 +144,12 @@ void VerificarEmergencia() {
         lcd.printf("Referenciando...");
 
     NVIC_SystemReset();
+    //Reinicialização do código
 
     }
 }
+
+//Referenciamento do Eixo X
 void ReferenciarX() {
     int etapa = 1;
     while (!referenciado_X) {
@@ -174,7 +181,7 @@ void ReferenciarX() {
     }
 }
 
-
+//Referenciamento do Eixo Y
 void ReferenciarY() {
     int etapa = 1;
     while (!referenciado_Y) {
@@ -206,7 +213,7 @@ void ReferenciarY() {
     }
 }
 
-
+//Referenciamento do Eixo Z
 void ReferenciarZ() {
     int etapa = 1;
     while (!referenciado_Z) {
@@ -239,8 +246,7 @@ void ReferenciarZ() {
 }
 
 
-
-
+//Antes de iniciar o ciclo automático, deve-se iniciar a subida do eixo Z para evitar choque com os componentes que podem estar na mesa
 void ElevarZ_AteTopo() {
     while (FdC_Z_Max == 1) {
         VerificarEmergencia();
@@ -249,10 +255,12 @@ void ElevarZ_AteTopo() {
     posicao_Z = 0;
 }
 
+//Calcula o número de MM andados de acordo o número de passos realizados
 float passosParaMM(int passos) { 
     return passos * PASSO_MM;
 }
 
+//Salava a posição de coleta
 void SalvarPosicaoCOLETA() {
     posicao_coletaX = posicao_X;
     posicao_coletaY = posicao_Y;
@@ -267,6 +275,7 @@ void SalvarPosicaoCOLETA() {
     wait_ms(2000);
 }
 
+//Função responsável por movimentação até os pontos de coleta e depósito
 void MoverPara(float x, float y, float z) {
     // Primeiro eleva Z para evitar colisão com frascos
     ElevarZ_AteTopo();
@@ -296,7 +305,7 @@ void MoverPara(float x, float y, float z) {
     }
 }
 
-
+//Inicialização da função MAIN()
 int main() {
     lcd.setCursor(TextLCD::CurOff_BlkOn);
     lcd.setBacklight(TextLCD::LightOn);
