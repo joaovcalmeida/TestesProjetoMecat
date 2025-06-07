@@ -305,7 +305,7 @@ void MoverPara(float x, float y, float z) {
     }
 }
 
-//Inicialização da função MAIN()
+//Inicialização da função MAIN() 
 int main() {
     lcd.setCursor(TextLCD::CurOff_BlkOn);
     lcd.setBacklight(TextLCD::LightOn);
